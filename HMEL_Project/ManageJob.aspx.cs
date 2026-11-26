@@ -1,16 +1,39 @@
-﻿using System;
-using System.Collections.Generic;
+using System;
 using System.Data;
 using System.Linq;
-using System.Web;
 using System.Web.UI;
 using System.Web.UI.WebControls;
-using static HMEL_Project.HomePage;
 
 namespace HMEL_Project
 {
     public partial class ManageJob : System.Web.UI.Page
     {
+        private DataTable JobTable
+        {
+            get
+            {
+                var dt = Session["ManagedJobs"] as DataTable;
+                if (dt == null)
+                {
+                    dt = new DataTable();
+                    dt.Columns.Add("JobId");
+                    dt.Columns.Add("Title");
+                    dt.Columns.Add("Location");
+                    dt.Columns.Add("PostedDate");
+
+                    dt.Rows.Add("101", "Software Developer", "Bengaluru", DateTime.Now.ToString("yyyy-MM-dd"));
+                    dt.Rows.Add("102", "System Analyst", "Noida", DateTime.Now.AddDays(-3).ToString("yyyy-MM-dd"));
+
+                    Session["ManagedJobs"] = dt;
+                }
+                return dt;
+            }
+            set
+            {
+                Session["ManagedJobs"] = value;
+            }
+        }
+
         protected void Page_Load(object sender, EventArgs e)
         {
             if (!IsPostBack)
@@ -21,17 +44,7 @@ namespace HMEL_Project
 
         private void BindJobGrid()
         {
-            // Dummy data for now; replace with DB logic
-            DataTable dt = new DataTable();
-            dt.Columns.Add("JobId");
-            dt.Columns.Add("Title");
-            dt.Columns.Add("Location");
-            dt.Columns.Add("PostedDate");
-
-            dt.Rows.Add("101", "Software Developer", "Bengaluru", DateTime.Now.ToString("yyyy-MM-dd"));
-            dt.Rows.Add("102", "System Analyst", "Noida", DateTime.Now.AddDays(-3).ToString("yyyy-MM-dd"));
-
-            GridViewJobs.DataSource = dt;
+            GridViewJobs.DataSource = JobTable;
             GridViewJobs.DataBind();
         }
 
@@ -49,12 +62,21 @@ namespace HMEL_Project
 
         protected void GridViewJobs_RowUpdating(object sender, GridViewUpdateEventArgs e)
         {
-            // Get updated values here
             string jobId = GridViewJobs.DataKeys[e.RowIndex].Value.ToString();
-            string title = ((TextBox)GridViewJobs.Rows[e.RowIndex].Cells[1].Controls[0]).Text;
-            string location = ((TextBox)GridViewJobs.Rows[e.RowIndex].Cells[2].Controls[0]).Text;
+            string title = ((TextBox)GridViewJobs.Rows[e.RowIndex].Cells[1].Controls[0]).Text.Trim();
+            string location = ((TextBox)GridViewJobs.Rows[e.RowIndex].Cells[2].Controls[0]).Text.Trim();
 
-            // TODO: Update DB with new values
+            DataTable dt = JobTable;
+            DataRow row = dt.Rows.Cast<DataRow>()
+                .FirstOrDefault(r => string.Equals(r["JobId"].ToString(), jobId, StringComparison.Ordinal));
+
+            if (row != null)
+            {
+                if (!string.IsNullOrEmpty(title)) row["Title"] = title;
+                if (!string.IsNullOrEmpty(location)) row["Location"] = location;
+                dt.AcceptChanges();
+                JobTable = dt;
+            }
 
             GridViewJobs.EditIndex = -1;
             BindJobGrid();
@@ -63,8 +85,16 @@ namespace HMEL_Project
         protected void GridViewJobs_RowDeleting(object sender, GridViewDeleteEventArgs e)
         {
             string jobId = GridViewJobs.DataKeys[e.RowIndex].Value.ToString();
+            DataTable dt = JobTable;
+            DataRow row = dt.Rows.Cast<DataRow>()
+                .FirstOrDefault(r => string.Equals(r["JobId"].ToString(), jobId, StringComparison.Ordinal));
 
-            // TODO: Delete job from DB
+            if (row != null)
+            {
+                row.Delete();
+                dt.AcceptChanges();
+                JobTable = dt;
+            }
 
             BindJobGrid();
         }

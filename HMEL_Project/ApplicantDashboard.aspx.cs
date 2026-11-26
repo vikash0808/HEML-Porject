@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+using System;
 using System.Data;
 using System.Linq;
 using System.Web;
@@ -21,7 +20,6 @@ namespace HMEL_Project
 
         private void InitializeMockData()
         {
-            // Available Jobs
             if (Session["AvailableJobs"] == null)
             {
                 DataTable available = new DataTable();
@@ -36,7 +34,6 @@ namespace HMEL_Project
                 Session["AvailableJobs"] = available;
             }
 
-            // Applied Jobs
             if (Session["AppliedJobs"] == null)
             {
                 DataTable applied = new DataTable();
@@ -58,39 +55,36 @@ namespace HMEL_Project
 
         protected void ApplyJob(object sender, CommandEventArgs e)
         {
-            string jobId = e.CommandArgument.ToString();
+            string jobId = Convert.ToString(e.CommandArgument);
 
-            // Fetch available jobs and find the one clicked
-            DataTable available = (DataTable)Session["AvailableJobs"];
-            DataTable applied = (DataTable)Session["AppliedJobs"];
+            DataTable available = Session["AvailableJobs"] as DataTable;
+            DataTable applied = Session["AppliedJobs"] as DataTable;
+            if (available == null || applied == null) return;
 
-            DataRow[] rows = available.Select("JobId = '" + jobId + "'");
-            if (rows.Length > 0)
+            DataRow match = available.Rows.Cast<DataRow>()
+                .FirstOrDefault(r => string.Equals(r["JobId"].ToString(), jobId, StringComparison.Ordinal));
+
+            if (match != null)
             {
-                string title = rows[0]["JobTitle"].ToString();
-
-                // Add to applied
+                string title = match["JobTitle"].ToString();
                 applied.Rows.Add(title, "Applied");
+                available.Rows.Remove(match);
 
-                // Remove from available
-                available.Rows.Remove(rows[0]);
-
-                // Save updated session
                 Session["AvailableJobs"] = available;
                 Session["AppliedJobs"] = applied;
 
-                // Rebind both
                 BindGrids();
 
-                // Confirmation
-                ScriptManager.RegisterStartupScript(this, GetType(), "alert", $"alert('Applied for {title}');", true);
+                string safeTitle = HttpUtility.JavaScriptStringEncode("Applied for " + title);
+                ScriptManager.RegisterStartupScript(this, GetType(), "alert", "alert('" + safeTitle + "');", true);
             }
         }
 
         protected void btnBack_Click(object sender, EventArgs e)
         {
-            Response.Redirect("Homepage.aspx");
+            Response.Redirect("HomePage.aspx");
         }
+
         protected string GetStepClass(string step, string currentStatus)
         {
             string[] stages = { "Applied", "Review", "Interview", "Final" };
@@ -104,6 +98,5 @@ namespace HMEL_Project
             else
                 return "step";
         }
-
     }
 }

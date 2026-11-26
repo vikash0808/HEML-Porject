@@ -1,14 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+using System;
+using System.Data;
 using System.Web;
 using System.Web.UI;
-using System.Web.UI.WebControls;
 
 namespace HMEL_Project
 {
     public partial class CreateJob : System.Web.UI.Page
     {
+        private static readonly Random Rnd = new Random();
+
         protected void Page_Load(object sender, EventArgs e)
         {
             if (!IsPostBack)
@@ -19,17 +19,36 @@ namespace HMEL_Project
 
         private void GenerateRandomJobId()
         {
-            // Generate a random Job ID like JOB-XXXX (random 4 digits)
-            Random rnd = new Random();
-            int num = rnd.Next(1000, 9999);
+            int num;
+            lock (Rnd)
+            {
+                num = Rnd.Next(1000, 10000);
+            }
             txtJobId.Text = "JOB-" + num;
+        }
+
+        private DataTable GetOrInitManagedJobs()
+        {
+            var dt = Session["ManagedJobs"] as DataTable;
+            if (dt == null)
+            {
+                dt = new DataTable();
+                dt.Columns.Add("JobId");
+                dt.Columns.Add("Title");
+                dt.Columns.Add("Location");
+                dt.Columns.Add("PostedDate");
+
+                dt.Rows.Add("101", "Software Developer", "Bengaluru", DateTime.Now.ToString("yyyy-MM-dd"));
+                dt.Rows.Add("102", "System Analyst", "Noida", DateTime.Now.AddDays(-3).ToString("yyyy-MM-dd"));
+                Session["ManagedJobs"] = dt;
+            }
+            return dt;
         }
 
         protected void btnSubmit_Click(object sender, EventArgs e)
         {
             bool isValid = true;
 
-            // Clear previous errors and message
             lblTitleError.Text = "";
             lblDescError.Text = "";
             lblLocError.Text = "";
@@ -62,10 +81,20 @@ namespace HMEL_Project
 
             if (!isValid) return;
 
-            // If valid, show success message (no DB)
-            lblMessage.Text = $"Job '{txtTitle.Text}' posted successfully with ID {txtJobId.Text}!";
+            string jobId = txtJobId.Text.Trim();
+            string title = txtTitle.Text.Trim();
+            string location = txtLocation.Text.Trim();
 
-            // Clear form except Job ID (generate new)
+            DataTable jobs = GetOrInitManagedJobs();
+            jobs.Rows.Add(jobId, title, location, DateTime.Now.ToString("yyyy-MM-dd"));
+            Session["ManagedJobs"] = jobs;
+
+            lblMessage.Text = string.Format(
+                "Job '{0}' posted successfully with ID {1}!",
+                HttpUtility.HtmlEncode(title),
+                HttpUtility.HtmlEncode(jobId)
+            );
+
             ClearFields();
             GenerateRandomJobId();
         }
@@ -80,7 +109,6 @@ namespace HMEL_Project
 
         protected void btnBack_Click(object sender, EventArgs e)
         {
-            // Redirect back to Admin Dashboard (update path as needed)
             Response.Redirect("AdminDashboard.aspx");
         }
     }

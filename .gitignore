@@ -1,0 +1,14 @@
+# Visual Studio / .NET build artifacts
+bin/
+obj/
+packages/
+.vs/
+*.user
+*.suo
+*.cache
+*.dll
+*.pdb
+
+# OS files
+.DS_Store
+Thumbs.db
