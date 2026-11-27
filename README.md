@@ -20,7 +20,7 @@ A role-based enterprise **Job Portal & Recruitment Workflow Management System** 
 - **Applicant Portal (`Applicant.aspx`, `ApplicantDashboard.aspx`):** Browse open roles, apply with safe LINQ filtering (no `DataTable.Select` string concatenation), and track application pipeline stages.
 - **Security Hardening:** Uses `HttpUtility.HtmlEncode` on rendered labels and `HttpUtility.JavaScriptStringEncode` on client-side alert messages to prevent reflected XSS.
 
----
+
 
 ## 📁 Project Structure
 
